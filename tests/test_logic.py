@@ -4,7 +4,7 @@ import unittest
 
 from bson import ObjectId
 
-from survey_logic import (
+from backend.survey_logic import (
     next_question_id,
     rule_matches,
     validate_answer,

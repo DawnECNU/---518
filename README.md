@@ -18,15 +18,19 @@
 
 ```text
 阶段一代码/
-├─ app.py                 # Flask 路由、账号与填写流程
-├─ survey_logic.py        # 题目构造、校验、跳转、统计（纯业务逻辑）
-├─ schema.py              # MongoDB JSON Schema 校验器
-├─ db.py                  # 连接、集合校验器与索引初始化
-├─ config.py              # 环境配置
-├─ templates/             # Jinja 页面
-├─ static/style.css       # 页面样式
+├─ app.py                 # 兼容入口，保持 python app.py 启动方式
+├─ wsgi.py                # WSGI 入口
+├─ backend/               # 后端代码
+│  ├─ app.py              # Flask 应用、路由、账号与填写流程
+│  ├─ survey_logic.py     # 题目、校验、跳转与统计逻辑
+│  ├─ schema.py           # MongoDB JSON Schema
+│  ├─ db.py               # 连接、校验器与索引初始化
+│  └─ config.py           # 环境配置
+├─ frontend/              # 前端页面与静态资源
+│  ├─ templates/          # Jinja 页面
+│  └─ static/style.css    # 页面样式
 ├─ tests/                 # unittest 自动化测试
-├─ docs/                  # 数据库、API、测试说明
+├─ docs/                  # 设计文档、测试说明与项目报告
 ├─ requirements.txt
 └─ docker-compose.yml     # 可选的 MongoDB 容器
 ```

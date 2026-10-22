@@ -3,7 +3,7 @@
 from pymongo import ASCENDING, DESCENDING, MongoClient
 from pymongo.errors import CollectionInvalid, PyMongoError
 
-from schema import COLLECTION_VALIDATORS
+from .schema import COLLECTION_VALIDATORS
 
 
 def init_app(app):
