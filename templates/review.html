@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}检查并提交 · {{ survey.title }}{% endblock %}
+{% block content %}
+<section class="fill-shell">
+  <div class="fill-top">
+    <div>
+      <span class="eyebrow">{{ survey.title }}</span>
+      <h1>检查你的答案</h1>
+      <p class="muted">已到达问卷结尾。确认无误后提交，提交后不能再修改。</p>
+    </div>
+  </div>
+
+  <div class="card review-card">
+    {% if items %}
+      {% for item in items %}
+        <div class="review-row">
+          <div class="review-question">
+            <span class="review-order">{{ item.question.order }}</span>
+            <div>
+              <strong>{{ item.question.title }}</strong>
+              <span>{{ item.question.type|question_type }}</span>
+            </div>
+          </div>
+          <div class="review-answer {% if not item.answered %}empty-answer{% endif %}">{{ item.answer }}</div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="muted">没有已作答的题目。</p>
+    {% endif %}
+  </div>
+
+  <form method="post" action="{{ url_for('main.submit_response', response_id=response._id) }}" class="review-submit">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <button class="button button-primary button-wide" type="submit">确认提交</button>
+  </form>
+  <p class="tiny-note center">提交后这份答卷会进入统计结果。</p>
+</section>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}{{ survey.title }} · 填写问卷{% endblock %}
+{% block content %}
+<section class="survey-cover">
+  <div class="cover-main">
+    <span class="eyebrow">在线问卷</span>
+    <h1>{{ survey.title }}</h1>
+    <p class="lead">{{ survey.description or '感谢你抽出时间填写这份问卷。' }}</p>
+    <div class="cover-facts">
+      <span>{{ question_count }} 道题</span>
+      <span>{{ '匿名统计' if survey.allow_anonymous else '账号记录' }}</span>
+      <span>{{ '可多次填写' if survey.allow_multiple else '每人限一份' }}</span>
+      {% if survey.deadline %}<span>截止 {{ survey.deadline|localdt }}</span>{% endif %}
+    </div>
+  </div>
+  <div class="card cover-action">
+    {% if accepting %}
+      {% if current_user %}
+        {% if submitted and not survey.allow_multiple %}
+          <h2>你已经提交过</h2>
+          <p class="muted">此问卷限制每个账号只能提交一份。</p>
+        {% else %}
+          <h2>准备好了吗？</h2>
+          <p class="muted">答题会按规则自动跳转，提交前可以检查答案。关闭页面后未提交的进度仍会保留。</p>
+          <form method="post" action="{{ url_for('main.start_response', public_id=survey.public_id) }}">
+            <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+            <button class="button button-primary button-block" type="submit">开始填写</button>
+          </form>
+        {% endif %}
+      {% else %}
+        <h2>请先登录</h2>
+        <p class="muted">填写问卷需要登录账号，以便保存答卷并支持断点继续。</p>
+        <a class="button button-primary button-block" href="{{ url_for('main.login', next=login_next) }}">登录后填写</a>
+        <p class="muted small center">没有账号？<a href="{{ url_for('main.register') }}">注册</a></p>
+      {% endif %}
+    {% else %}
+      <h2>当前不可填写</h2>
+      <p class="notice">{{ availability_note }}</p>
+    {% endif %}
+  </div>
+</section>
+
+<section class="info-strip">
+  <div><strong>登录填写</strong><span>答卷与账号关联，支持恢复进度</span></div>
+  <div><strong>自动保存</strong><span>每答一题都会写入 MongoDB</span></div>
+  <div><strong>条件跳转</strong><span>根据回答自动进入对应题目</span></div>
+</section>
+{% endblock %}

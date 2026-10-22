@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}提交成功 · {{ survey.title }}{% endblock %}
+{% block content %}
+<section class="done-shell card">
+  <div class="done-mark">✓</div>
+  <span class="eyebrow">提交成功</span>
+  <h1>感谢你的填写</h1>
+  <p class="lead">你的答卷已保存到「{{ survey.title }}」。问卷创建者可以在统计页面查看汇总结果。</p>
+  <div class="done-meta">
+    <span>提交时间：{{ response.submitted_at|localdt }}</span>
+    {% if response.anonymous %}<span>本次填写按匿名统计</span>{% endif %}
+  </div>
+  <div class="form-actions center-actions">
+    {% if can_retake %}
+      <form method="post" action="{{ url_for('main.start_response', public_id=survey.public_id) }}">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <button class="button button-primary" type="submit">再填一份</button>
+      </form>
+    {% endif %}
+    <a class="button button-ghost" href="{{ url_for('main.dashboard') }}">回到我的问卷</a>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+{% block title %}{{ survey.title }} · 管理{% endblock %}
+{% block content %}
+{% set locked = survey.status != 'draft' %}
+<a class="back-link" href="{{ url_for('main.dashboard') }}">← 返回我的问卷</a>
+
+<section class="page-heading">
+  <div>
+    <div class="eyebrow-row">
+      <span class="eyebrow">问卷管理</span>
+      {% if survey.status == 'draft' %}
+        <span class="badge badge-draft">草稿</span>
+      {% elif survey.status == 'closed' %}
+        <span class="badge badge-closed">已关闭</span>
+      {% elif accepting %}
+        <span class="badge badge-open">收集中</span>
+      {% else %}
+        <span class="badge badge-closed">已截止</span>
+      {% endif %}
+    </div>
+    <h1>{{ survey.title }}</h1>
+    <p class="lead smaller">{{ survey.description or '暂无问卷说明。' }}</p>
+    {% if not accepting and availability_note %}
+      <p class="notice">{{ availability_note }}</p>
+    {% endif %}
+  </div>
+  <div class="heading-actions">
+    <a class="button button-ghost" href="{{ url_for('main.survey_stats', survey_id=survey._id) }}">查看统计</a>
+    {% if survey.status == 'draft' %}
+      <form method="post" action="{{ url_for('main.publish_survey', survey_id=survey._id) }}">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <button class="button button-primary" type="submit">发布问卷</button>
+      </form>
+    {% elif survey.status == 'published' %}
+      <form method="post" action="{{ url_for('main.close_survey', survey_id=survey._id) }}" onsubmit="return confirm('关闭后填写者将不能继续作答，确定关闭吗？');">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <button class="button button-danger" type="submit">关闭问卷</button>
+      </form>
+    {% endif %}
+  </div>
+</section>
+
+<section class="metric-strip card">
+  <div><strong>{{ question_views|length }}</strong><span>题目数量</span></div>
+  <div><strong>{{ response_count }}</strong><span>有效答卷</span></div>
+  <div><strong>{{ draft_count }}</strong><span>未提交草稿</span></div>
+  <div><strong>{{ '允许' if survey.allow_multiple else '每人一次' }}</strong><span>重复填写</span></div>
+  <div><strong>{{ '匿名' if survey.allow_anonymous else '实名记录' }}</strong><span>填写方式</span></div>
+</section>
+
+<div class="two-column">
+  <section class="card">
+    <div class="section-title">
+      <div>
+        <h2>问卷链接</h2>
+        <p class="muted small">填写者需要登录，才能通过此链接进入答题。</p>
+      </div>
+    </div>
+    {% if survey.status == 'draft' %}
+      <p class="notice">发布后链接即可对外使用。</p>
+    {% endif %}
+    <div class="copy-row">
+      <input id="public-url" readonly value="{{ public_url }}">
+      <button class="button button-small" type="button" id="copy-button">复制</button>
+    </div>
+    {% if survey.status != 'draft' %}
+      <p class="muted small"><a href="{{ url_for('main.public_survey', public_id=survey.public_id) }}" target="_blank">在新窗口打开问卷 ↗</a></p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <div class="section-title">
+      <div>
+        <h2>截止时间</h2>
+        <p class="muted small">当前：{{ survey.deadline|localdt }}</p>
+      </div>
+    </div>
+    {% if survey.status != 'closed' %}
+      <form method="post" action="{{ url_for('main.update_deadline', survey_id=survey._id) }}" class="inline-settings">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <input type="datetime-local" name="deadline" value="{{ deadline_input }}">
+        <button class="button button-small" type="submit">保存</button>
+      </form>
+      <p class="hint">留空表示不设置截止时间。</p>
+    {% else %}
+      <p class="muted">问卷关闭后不再接受答卷。</p>
+    {% endif %}
+  </section>
+</div>
+
+{% if survey.status == 'draft' %}
+<section class="card settings-card">
+  <details>
+    <summary>编辑基础设置</summary>
+    <form method="post" action="{{ url_for('main.update_survey', survey_id=survey._id) }}" class="stack top-gap">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <label class="field">
+        <span>问卷标题</span>
+        <input name="title" maxlength="200" required value="{{ survey.title }}">
+      </label>
+      <label class="field">
+        <span>问卷说明</span>
+        <textarea name="description" rows="3" maxlength="5000">{{ survey.description }}</textarea>
+      </label>
+      <label class="check-row">
+        <input type="checkbox" name="allow_anonymous" {% if survey.allow_anonymous %}checked{% endif %}>
+        <span><strong>允许匿名填写</strong></span>
+      </label>
+      <label class="check-row">
+        <input type="checkbox" name="allow_multiple" {% if survey.allow_multiple %}checked{% endif %}>
+        <span><strong>允许同一账号多次填写</strong></span>
+      </label>
+      <div><button class="button button-small button-primary" type="submit">保存设置</button></div>
+    </form>
+  </details>
+</section>
+{% endif %}
+
+<section class="section-heading">
+  <div>
+    <h2>题目与跳转</h2>
+    <p class="muted small">规则按从上到下的顺序匹配，第一条满足的规则生效；没有命中时进入下一题。</p>
+  </div>
+  {% if not locked %}
+    <a class="button button-primary" href="{{ url_for('main.new_question', survey_id=survey._id) }}">添加题目</a>
+  {% endif %}
+</section>
+
+{% if question_views %}
+  <div class="question-list">
+    {% for view in question_views %}
+      {% set question = view.question %}
+      <article class="card question-card" id="q-{{ question._id }}">
+        <div class="question-card-head">
+          <div class="question-order">{{ question.order }}</div>
+          <div class="question-main">
+            <div class="question-meta">
+              <span>{{ question.type|question_type }}</span>
+              <span>{{ view.requirement }}</span>
+              {% if question.jump_rules %}<span class="rule-count">{{ question.jump_rules|length }} 条跳转规则</span>{% endif %}
+            </div>
+            <h3>{{ question.title }}</h3>
+            {% if question.options %}
+              <div class="option-chips">
+                {% for option in question.options %}
+                  <span><b>{{ option.key }}</b>{{ option.label }}</span>
+                {% endfor %}
+              </div>
+            {% endif %}
+          </div>
+          {% if not locked %}
+            <a class="button button-small button-ghost" href="{{ url_for('main.edit_question', survey_id=survey._id, question_id=question._id) }}">编辑</a>
+          {% endif %}
+        </div>
+
+        {% if view.rules %}
+          <div class="rule-list">
+            {% for rule_view in view.rules %}
+              <div class="rule-row">
+                <span class="rule-if">如果</span>
+                <span>{{ rule_view.condition }}</span>
+                <span class="rule-arrow">→</span>
+                <span>{{ rule_view.target }}</span>
+                {% if not locked %}
+                  <form method="post" action="{{ url_for('main.delete_rule', survey_id=survey._id, question_id=question._id, rule_id=rule_view.rule._id) }}" class="rule-delete">
+                    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+                    <button class="link-button danger-text" type="submit">删除</button>
+                  </form>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        {% if not locked and question.type in ['single', 'multiple', 'number'] %}
+          <details class="rule-builder">
+            <summary>添加跳转规则</summary>
+            <form method="post" action="{{ url_for('main.add_rule', survey_id=survey._id, question_id=question._id) }}" class="rule-form" data-rule-form>
+              <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+              {% if question.type == 'single' %}
+                <input type="hidden" name="kind" value="option_equals">
+                <label class="field compact">
+                  <span>当选择</span>
+                  <select name="value">
+                    {% for option in question.options %}
+                      <option value="{{ option.key }}">{{ option.key }} · {{ option.label }}</option>
+                    {% endfor %}
+                  </select>
+                </label>
+              {% elif question.type == 'multiple' %}
+                <label class="field compact">
+                  <span>条件</span>
+                  <select name="kind" data-rule-kind>
+                    <option value="option_contains">包含指定选项</option>
+                    <option value="selection_count">选择数量满足</option>
+                  </select>
+                </label>
+                <label class="field compact" data-show-for="option_contains">
+                  <span>选项</span>
+                  <select name="value">
+                    {% for option in question.options %}
+                      <option value="{{ option.key }}">{{ option.key }} · {{ option.label }}</option>
+                    {% endfor %}
+                  </select>
+                </label>
+                <label class="field compact" data-show-for="selection_count">
+                  <span>比较</span>
+                  <select name="operator">
+                    <option value="eq">等于</option>
+                    <option value="gte">至少</option>
+                    <option value="lte">至多</option>
+                  </select>
+                </label>
+                <label class="field compact" data-show-for="selection_count">
+                  <span>数量</span>
+                  <input type="number" name="count" min="0" value="2">
+                </label>
+              {% else %}
+                <input type="hidden" name="kind" value="number_range">
+                <label class="field compact">
+                  <span>最小值（可空）</span>
+                  <input type="number" step="any" name="min">
+                </label>
+                <label class="field compact">
+                  <span>最大值（可空）</span>
+                  <input type="number" step="any" name="max">
+                </label>
+              {% endif %}
+              <label class="field compact">
+                <span>跳转到</span>
+                <select name="target">
+                  <option value="end">结束问卷</option>
+                  {% for target in view.targets %}
+                    <option value="{{ target._id }}">第 {{ target.order }} 题 · {{ target.title }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <button class="button button-small button-primary" type="submit">添加</button>
+            </form>
+          </details>
+        {% endif %}
+      </article>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="card empty-state">
+    <div class="empty-icon">?</div>
+    <h2>问卷还没有题目</h2>
+    <p>添加第一道题后，才可以发布问卷。</p>
+    {% if not locked %}
+      <a class="button button-primary" href="{{ url_for('main.new_question', survey_id=survey._id) }}">添加题目</a>
+    {% endif %}
+  </div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+  (function () {
+    const button = document.getElementById('copy-button');
+    const input = document.getElementById('public-url');
+    if (button && input) {
+      button.addEventListener('click', async function () {
+        try {
+          await navigator.clipboard.writeText(input.value);
+          button.textContent = '已复制';
+          setTimeout(function () { button.textContent = '复制'; }, 1400);
+        } catch (error) {
+          input.select();
+          document.execCommand('copy');
+          button.textContent = '已复制';
+        }
+      });
+    }
+    document.querySelectorAll('[data-rule-kind]').forEach(function (select) {
+      const form = select.closest('form');
+      function refresh() {
+        form.querySelectorAll('[data-show-for]').forEach(function (block) {
+          block.hidden = !block.dataset.showFor.split(' ').includes(select.value);
+        });
+      }
+      select.addEventListener('change', refresh);
+      refresh();
+    });
+  })();
+</script>
+{% endblock %}

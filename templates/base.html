@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}轻问卷{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="{{ url_for('main.index') }}">
+      <span class="brand-mark">问</span>
+      <span>轻问卷</span>
+    </a>
+    <nav class="nav">
+      {% if current_user %}
+        <a href="{{ url_for('main.dashboard') }}">我的问卷</a>
+        <a class="nav-primary" href="{{ url_for('main.new_survey') }}">新建问卷</a>
+        <span class="nav-user">{{ current_user.username }}</span>
+        <form method="post" action="{{ url_for('main.logout') }}" class="inline-form">
+          <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+          <button class="link-button" type="submit">退出</button>
+        </form>
+      {% else %}
+        <a href="{{ url_for('main.login') }}">登录</a>
+        <a class="nav-primary" href="{{ url_for('main.register') }}">注册</a>
+      {% endif %}
+    </nav>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-wrap">
+        {% for category, message in messages %}
+          <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <main class="page">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">
+    <span>当代数据管理系统 · 第一次大作业 · 阶段一</span>
+    <span>Flask + MongoDB</span>
+  </footer>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

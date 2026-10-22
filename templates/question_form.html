@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}{{ '编辑题目' if existing else '添加题目' }} · {{ survey.title }}{% endblock %}
+{% block content %}
+<section class="narrow">
+  <a class="back-link" href="{{ url_for('main.survey_detail', survey_id=survey._id) }}">← 返回问卷管理</a>
+  <div class="page-heading compact">
+    <div>
+      <span class="eyebrow">{{ 'Edit' if existing else 'New question' }}</span>
+      <h1>{{ '编辑题目' if existing else '添加题目' }}</h1>
+      <p class="muted">{{ survey.title }}</p>
+    </div>
+  </div>
+
+  <form method="post" class="card stack" id="question-form">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <label class="field">
+      <span>题目类型</span>
+      <select name="type" id="question-type">
+        {% for value, label in question_types.items() %}
+          <option value="{{ value }}" {% if data.get('type') == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="field">
+      <span>题目标题 <em>必填</em></span>
+      <input name="title" maxlength="500" required value="{{ data.get('title', '') }}" placeholder="例如：你的性别">
+    </label>
+
+    <div data-qsection="single multiple">
+      <label class="field">
+        <span>选项 <em>必填</em></span>
+        <textarea name="options" rows="5" placeholder="每行一个选项，例如：&#10;男&#10;女&#10;其他">{{ data.get('options', '') }}</textarea>
+        <small class="hint">每行一个选项，系统自动分配 A、B、C… 选项编号。</small>
+      </label>
+    </div>
+
+    <div data-qsection="multiple" class="option-box">
+      <h3>多选数量限制</h3>
+      <div class="triple-grid">
+        <label class="field">
+          <span>最少选择</span>
+          <input type="number" min="0" name="min_selections" value="{{ data.get('min_selections', '') }}" placeholder="不限制">
+        </label>
+        <label class="field">
+          <span>最多选择</span>
+          <input type="number" min="0" name="max_selections" value="{{ data.get('max_selections', '') }}" placeholder="不限制">
+        </label>
+        <label class="field">
+          <span>必须选择</span>
+          <input type="number" min="0" name="exact_selections" value="{{ data.get('exact_selections', '') }}" placeholder="不限定">
+        </label>
+      </div>
+      <p class="hint">“必须选择”填写后优先作为精确数量限制，例如必须选 2 个。</p>
+    </div>
+
+    <div data-qsection="text" class="option-box">
+      <h3>文本长度限制</h3>
+      <div class="double-grid">
+        <label class="field">
+          <span>最少字数</span>
+          <input type="number" min="0" name="min_length" value="{{ data.get('min_length', '') }}" placeholder="不限制">
+        </label>
+        <label class="field">
+          <span>最多字数</span>
+          <input type="number" min="0" name="max_length" value="{{ data.get('max_length', '') }}" placeholder="不限制">
+        </label>
+      </div>
+    </div>
+
+    <div data-qsection="number" class="option-box">
+      <h3>数字范围限制</h3>
+      <div class="double-grid">
+        <label class="field">
+          <span>最小值</span>
+          <input type="number" step="any" name="min_value" value="{{ data.get('min_value', '') }}" placeholder="不限制">
+        </label>
+        <label class="field">
+          <span>最大值</span>
+          <input type="number" step="any" name="max_value" value="{{ data.get('max_value', '') }}" placeholder="不限制">
+        </label>
+      </div>
+      <label class="check-row compact-check">
+        <input type="checkbox" name="integer_only" {% if data.get('integer_only') %}checked{% endif %}>
+        <span><strong>只允许整数</strong></span>
+      </label>
+    </div>
+
+    <label class="check-row compact-check">
+      <input type="checkbox" name="required" {% if data.get('required') %}checked{% endif %}>
+      <span><strong>必答题</strong><small>填写者必须回答后才能继续。</small></span>
+    </label>
+
+    {% if existing and existing.jump_rules %}
+      <p class="notice">该题已有跳转规则。可以修改题干、必答状态和限制，但修改题型或删除被规则引用的选项会被拒绝。</p>
+    {% endif %}
+
+    <div class="form-actions">
+      <button class="button button-primary" type="submit">{{ '保存修改' if existing else '添加题目' }}</button>
+      <a class="button button-ghost" href="{{ url_for('main.survey_detail', survey_id=survey._id) }}">取消</a>
+    </div>
+  </form>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+  (function () {
+    const type = document.getElementById('question-type');
+    const sections = document.querySelectorAll('[data-qsection]');
+    function refresh() {
+      sections.forEach(function (section) {
+        const values = section.dataset.qsection.split(' ');
+        section.hidden = !values.includes(type.value);
+      });
+    }
+    type.addEventListener('change', refresh);
+    refresh();
+  })();
+</script>
+{% endblock %}
