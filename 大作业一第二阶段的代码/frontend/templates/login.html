@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}登录 · 轻问卷{% endblock %}
+{% block content %}
+<section class="auth-layout">
+  <div class="auth-aside">
+    <span class="eyebrow">欢迎回来</span>
+    <h1>继续管理你的问卷。</h1>
+    <p>登录后只能查看自己创建的问卷和统计结果；通过公开链接填写他人的问卷不受此限制。</p>
+  </div>
+  <div class="card auth-card">
+    <h2>登录</h2>
+    <form method="post" class="stack">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="next" value="{{ next_url }}">
+      <label class="field">
+        <span>用户名</span>
+        <input name="username" value="{{ username }}" required autofocus>
+      </label>
+      <label class="field">
+        <span>密码</span>
+        <input type="password" name="password" required>
+      </label>
+      <button class="button button-primary button-block" type="submit">登录</button>
+    </form>
+    <p class="muted center">还没有账号？<a href="{{ url_for('main.register') }}">注册一个</a></p>
+  </div>
+</section>
+{% endblock %}

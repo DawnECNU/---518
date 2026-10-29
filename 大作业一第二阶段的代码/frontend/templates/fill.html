@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}第 {{ question.order }} 题 · {{ survey.title }}{% endblock %}
+{% block content %}
+<section class="fill-shell">
+  <div class="fill-top">
+    <div>
+      <span class="eyebrow">{{ survey.title }}</span>
+      <h1>第 {{ question.order }} 题</h1>
+      <p class="muted">问卷共 {{ question_total }} 题；跳转时部分题目会自动略过。</p>
+    </div>
+    <div class="progress-badge">已作答 {{ response.path|length }} 题</div>
+  </div>
+
+  {% if errors %}
+    <div class="error-panel">
+      {% for error in errors %}<p>{{ error }}</p>{% endfor %}
+    </div>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('main.submit_answer', response_id=response._id) }}" class="card fill-card">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <input type="hidden" name="qid" value="{{ question._id }}">
+    <div class="question-meta">
+      <span>{{ question.type|question_type }}</span>
+      <span>{{ '必答' if question.required else '选答' }}</span>
+    </div>
+    <h2 class="fill-question">{{ question.title }}</h2>
+    <p class="hint">{{ requirement }}</p>
+
+    {% if question.type == 'single' %}
+      <div class="choice-list">
+        {% for option in question.options %}
+          <label class="choice">
+            <input type="radio" name="answer" value="{{ option.key }}" {% if value == option.key %}checked{% endif %}>
+            <span class="choice-key">{{ option.key }}</span>
+            <span>{{ option.label }}</span>
+          </label>
+        {% endfor %}
+      </div>
+    {% elif question.type == 'multiple' %}
+      <div class="choice-list">
+        {% for option in question.options %}
+          <label class="choice">
+            <input type="checkbox" name="answer" value="{{ option.key }}" {% if value is sequence and value is not string and option.key in value %}checked{% endif %}>
+            <span class="choice-key">{{ option.key }}</span>
+            <span>{{ option.label }}</span>
+          </label>
+        {% endfor %}
+      </div>
+    {% elif question.type == 'text' %}
+      <input class="answer-input" type="text" name="answer" value="{{ value or '' }}" autofocus autocomplete="off">
+    {% elif question.type == 'number' %}
+      <input class="answer-input" type="number" step="{{ '1' if question.constraints.get('integer_only') else 'any' }}" name="answer" value="{{ value if value is not none else '' }}" autofocus>
+    {% endif %}
+
+    <div class="constraint-line">
+      {% if question.type == 'multiple' %}
+        {% set c = question.constraints %}
+        {% if c.get('exact_selections') is not none %}必须选择 {{ c.get('exact_selections') }} 项{% endif %}
+        {% if c.get('min_selections') is not none %}至少选择 {{ c.get('min_selections') }} 项{% endif %}
+        {% if c.get('max_selections') is not none %}最多选择 {{ c.get('max_selections') }} 项{% endif %}
+      {% elif question.type == 'text' %}
+        {% set c = question.constraints %}
+        {% if c.get('min_length') is not none %}至少 {{ c.get('min_length') }} 字{% endif %}
+        {% if c.get('max_length') is not none %}最多 {{ c.get('max_length') }} 字{% endif %}
+      {% elif question.type == 'number' %}
+        {% set c = question.constraints %}
+        {% if c.get('min_value') is not none %}最小值 {{ c.get('min_value')|string }}{% endif %}
+        {% if c.get('max_value') is not none %}最大值 {{ c.get('max_value')|string }}{% endif %}
+        {% if c.get('integer_only') %}只接受整数{% endif %}
+      {% endif %}
+    </div>
+
+    <div class="form-actions">
+      <button class="button button-primary" type="submit" name="action" value="next">下一题</button>
+      {% if not question.required %}
+        <button class="button button-ghost" type="submit" name="action" value="skip">跳过本题</button>
+      {% endif %}
+    </div>
+  </form>
+  <p class="tiny-note">答案在点击“下一题”后立即保存；未提交的答卷可以稍后继续。</p>
+</section>
+{% endblock %}

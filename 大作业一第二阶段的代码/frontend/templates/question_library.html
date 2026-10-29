@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}题目库 · 轻问卷{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div>
+    <span class="eyebrow">可复用内容</span>
+    <h1>题目库</h1>
+    <p class="lead smaller">创建一次题目，在多个问卷中重复使用。每个问卷固定保存所选版本，后续修改不会影响旧问卷。</p>
+  </div>
+  <div class="heading-actions">
+    <a class="button button-ghost" href="{{ url_for('main.dashboard') }}">返回我的问卷</a>
+    <a class="button button-primary" href="{{ url_for('main.new_question_template') }}">新建题目</a>
+  </div>
+</section>
+
+<section class="library-toolbar card">
+  <div class="tab-row">
+    <a class="tab-link {% if scope == 'all' %}active{% endif %}" href="{{ url_for('main.question_library', scope='all') }}">全部可用题目</a>
+    <a class="tab-link {% if scope == 'bank' %}active{% endif %}" href="{{ url_for('main.question_library', scope='bank') }}">我的题库 · {{ bank_count }}</a>
+  </div>
+  <form method="get" class="search-form">
+    <input type="hidden" name="scope" value="{{ scope }}">
+    <input name="q" value="{{ query }}" placeholder="搜索题目名称或题干">
+    <button class="button button-small" type="submit">搜索</button>
+  </form>
+</section>
+
+{% if template_views %}
+<section class="library-grid">
+  {% for item in template_views %}
+    {% set template = item.template %}
+    <article class="card library-card">
+      <div class="survey-card-top">
+        <div class="inline-badges">
+          {% if item.is_owner %}
+            <span class="badge badge-open">我创建的</span>
+          {% else %}
+            <span class="badge badge-draft">共享给我</span>
+          {% endif %}
+          {% if item.in_bank %}<span class="badge badge-bank">题库</span>{% endif %}
+        </div>
+        {% if item.latest %}
+          <span class="version-pill">v{{ item.latest.version_no }}</span>
+        {% endif %}
+      </div>
+      <h2><a href="{{ url_for('main.question_template_detail', template_id=template._id) }}">{{ template.name }}</a></h2>
+      {% if item.latest %}
+        <p class="library-question">{{ item.latest.title }}</p>
+        <div class="question-meta">
+          <span>{{ item.latest.type|question_type }}</span>
+          <span>{{ '必答' if item.latest.required else '选答' }}</span>
+          <span>被 {{ item.usage_count }} 处问卷使用</span>
+        </div>
+        {% if item.latest.options %}
+          <div class="option-chips compact-chips">
+            {% for option in item.latest.options[:4] %}
+              <span><b>{{ option.key }}</b>{{ option.label }}</span>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endif %}
+      <div class="card-actions library-actions">
+        <a class="button button-small" href="{{ url_for('main.question_template_detail', template_id=template._id) }}">详情与历史</a>
+        <a class="button button-small button-ghost" href="{{ url_for('main.question_template_stats', template_id=template._id) }}">跨问卷统计</a>
+        <form method="post" action="{{ url_for('main.toggle_question_bank', template_id=template._id) }}">
+          <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="{{ 'remove' if item.in_bank else 'add' }}">
+          <button class="link-button" type="submit">{{ '移出题库' if item.in_bank else '加入题库' }}</button>
+        </form>
+      </div>
+    </article>
+  {% endfor %}
+</section>
+{% else %}
+<section class="empty-state card">
+  <div class="empty-icon">＋</div>
+  <h2>{% if scope == 'bank' %}题库还是空的{% else %}还没有可复用题目{% endif %}</h2>
+  <p>{% if scope == 'bank' %}在题目详情中把常用题目加入题库，之后就能集中选题。{% else %}先创建一道题，或在问卷中保存题目时勾选加入题库。{% endif %}</p>
+  <a class="button button-primary" href="{{ url_for('main.new_question_template') }}">新建题目</a>
+</section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}从题目库选题 · {{ survey.title }}{% endblock %}
+{% block content %}
+<a class="back-link" href="{{ url_for('main.survey_detail', survey_id=survey._id) }}">← 返回问卷管理</a>
+<section class="page-heading">
+  <div>
+    <span class="eyebrow">复用题目</span>
+    <h1>从题目库选题</h1>
+    <p class="muted">{{ survey.title }} · 选中的版本会锁定为这份问卷的题目快照。</p>
+  </div>
+  <div class="heading-actions">
+    <a class="button button-ghost" href="{{ url_for('main.new_question', survey_id=survey._id) }}">手动创建题目</a>
+    <a class="button" href="{{ url_for('main.new_question_template') }}">新建可复用题目</a>
+  </div>
+</section>
+
+<div class="tab-row card picker-tabs">
+  <a class="tab-link {% if scope == 'all' %}active{% endif %}" href="{{ url_for('main.use_library_question', survey_id=survey._id, scope='all') }}">全部可用题目</a>
+  <a class="tab-link {% if scope == 'bank' %}active{% endif %}" href="{{ url_for('main.use_library_question', survey_id=survey._id, scope='bank') }}">我的题库</a>
+</div>
+
+{% if template_views %}
+<section class="picker-grid">
+  {% for item in template_views %}
+    {% if item.latest %}
+      <article class="card picker-card">
+        <div class="survey-card-top">
+          <div class="inline-badges">
+            <span class="badge {{ 'badge-open' if item.is_owner else 'badge-draft' }}">{{ '我创建的' if item.is_owner else '共享题目' }}</span>
+            {% if item.in_bank %}<span class="badge badge-bank">题库</span>{% endif %}
+          </div>
+          <span class="version-pill">v{{ item.latest.version_no }}</span>
+        </div>
+        <h2>{{ item.template.name }}</h2>
+        <p class="library-question">{{ item.latest.title }}</p>
+        <div class="question-meta">
+          <span>{{ item.latest.type|question_type }}</span>
+          <span>{{ '必答' if item.latest.required else '选答' }}</span>
+          <span>已用于 {{ item.usage_count }} 处</span>
+        </div>
+        <form method="post" action="{{ url_for('main.use_library_question', survey_id=survey._id, scope=scope) }}" class="picker-form">
+          <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+          <input type="hidden" name="template_id" value="{{ item.template._id }}">
+          <label class="field compact">
+            <span>选择版本</span>
+            <select name="version_id">
+              {% for version in item.versions %}
+                <option value="{{ version._id }}" {% if loop.first %}selected{% endif %}>v{{ version.version_no }} · {{ version.title }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <button class="button button-small button-primary" type="submit">加入问卷</button>
+        </form>
+        <a class="picker-detail-link" href="{{ url_for('main.question_template_detail', template_id=item.template._id) }}">查看版本与使用位置 →</a>
+      </article>
+    {% endif %}
+  {% endfor %}
+</section>
+{% else %}
+<section class="empty-state card">
+  <div class="empty-icon">＋</div>
+  <h2>{% if scope == 'bank' %}题库里还没有题目{% else %}还没有可选择的题目{% endif %}</h2>
+  <p>先手动创建题目，或把共享给他的题目加入题库。</p>
+  <a class="button button-primary" href="{{ url_for('main.new_question', survey_id=survey._id) }}">创建题目</a>
+</section>
+{% endif %}
+{% endblock %}

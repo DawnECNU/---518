@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}轻问卷 · 在线问卷系统{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="hero-copy">
+    <span class="eyebrow">MongoDB 问卷系统</span>
+    <h1>把问题问清楚，<br>把答案留下来。</h1>
+    <p class="lead">创建问卷、按链接分发、按规则跳转、自动汇总统计。阶段一覆盖账号、问卷管理、单选、多选、文本与数字填空、条件跳转和结果分析。</p>
+    <div class="hero-actions">
+      <a class="button button-primary" href="{{ url_for('main.register') }}">开始创建问卷</a>
+      <a class="button button-ghost" href="{{ url_for('main.login') }}">已有账号，登录</a>
+    </div>
+  </div>
+  <div class="hero-panel">
+    <div class="preview-card">
+      <div class="preview-label">问卷预览</div>
+      <h3>校园生活小调查</h3>
+      <p>你喜欢在哪个时间段去图书馆？</p>
+      <div class="preview-option">A. 上午</div>
+      <div class="preview-option selected">B. 下午</div>
+      <div class="preview-option">C. 晚上</div>
+      <div class="preview-rule">选 B → 跳到第 5 题</div>
+    </div>
+  </div>
+</section>
+
+<section class="feature-grid">
+  <article class="feature">
+    <span class="feature-index">01</span>
+    <h3>灵活出题</h3>
+    <p>单选、多选、文本填空、数字填空，支持必答、选择数量、字数与数值范围校验。</p>
+  </article>
+  <article class="feature">
+    <span class="feature-index">02</span>
+    <h3>条件跳转</h3>
+    <p>跳转规则保存在 MongoDB 中，可按选项、多选数量或数字区间跳题，不写死在代码里。</p>
+  </article>
+  <article class="feature">
+    <span class="feature-index">03</span>
+    <h3>自动统计</h3>
+    <p>每次提交自动归档。选项分布、文本内容、数字平均值与极值随填写实时更新。</p>
+  </article>
+</section>
+{% endblock %}

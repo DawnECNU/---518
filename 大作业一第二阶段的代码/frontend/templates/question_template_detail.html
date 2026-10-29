@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block title %}{{ template.name }} · 题目详情{% endblock %}
+{% block content %}
+<a class="back-link" href="{{ url_for('main.question_library') }}">← 返回题目库</a>
+
+<section class="page-heading">
+  <div>
+    <div class="eyebrow-row">
+      <span class="eyebrow">题目详情</span>
+      <span class="badge {{ 'badge-open' if is_owner else 'badge-draft' }}">{{ '我创建的' if is_owner else '共享给我' }}</span>
+      {% if in_bank %}<span class="badge badge-bank">在我的题库</span>{% endif %}
+    </div>
+    <h1>{{ template.name }}</h1>
+    <p class="muted">当前版本 v{{ current_version.version_no }} · 共 {{ versions|length }} 个版本 · 被 {{ usage_views|length }} 处问卷使用</p>
+  </div>
+  <div class="heading-actions">
+    <a class="button button-ghost" href="{{ url_for('main.question_template_stats', template_id=template._id) }}">跨问卷统计</a>
+    {% if is_owner %}
+      <a class="button button-primary" href="{{ url_for('main.new_question_version', template_id=template._id) }}">创建新版本</a>
+    {% endif %}
+  </div>
+</section>
+
+<div class="two-column library-detail-grid">
+  <section class="card">
+    <div class="section-title">
+      <div>
+        <span class="eyebrow">Current version</span>
+        <h2>v{{ current_version.version_no }} · {{ current_version.title }}</h2>
+      </div>
+      <span class="version-pill">当前</span>
+    </div>
+    <div class="question-meta detail-meta">
+      <span>{{ current_version.type|question_type }}</span>
+      <span>{{ '必答' if current_version.required else '选答' }}</span>
+      <span>创建于 {{ current_version.created_at|localdt }}</span>
+    </div>
+    {% if current_version.options %}
+      <div class="option-chips">
+        {% for option in current_version.options %}
+          <span><b>{{ option.key }}</b>{{ option.label }}</span>
+        {% endfor %}
+      </div>
+    {% endif %}
+    {% if current_version.change_note %}
+      <p class="version-note">{{ current_version.change_note }}</p>
+    {% endif %}
+    <div class="form-actions top-gap">
+      <form method="post" action="{{ url_for('main.toggle_question_bank', template_id=template._id) }}">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="{{ 'remove' if in_bank else 'add' }}">
+        <button class="button button-small" type="submit">{{ '从我的题库移除' if in_bank else '加入我的题库' }}</button>
+      </form>
+      {% if is_owner %}
+        <details class="inline-details">
+          <summary>修改名称</summary>
+          <form method="post" action="{{ url_for('main.rename_question_template', template_id=template._id) }}" class="inline-rename">
+            <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+            <input name="name" maxlength="200" value="{{ template.name }}" required>
+            <button class="button button-small" type="submit">保存</button>
+          </form>
+        </details>
+      {% endif %}
+    </div>
+  </section>
+
+  {% if is_owner %}
+  <section class="card">
+    <div class="section-title">
+      <div>
+        <span class="eyebrow">Collaboration</span>
+        <h2>共享给其他用户</h2>
+        <p class="muted small">对方可以使用同一题目及其版本；“使用”不会把编辑权限交给对方。</p>
+      </div>
+    </div>
+    <form method="post" action="{{ url_for('main.share_question_template', template_id=template._id) }}" class="inline-settings share-form">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <input name="username" placeholder="输入对方用户名" required>
+      <button class="button button-small button-primary" type="submit">共享</button>
+    </form>
+    {% if shares %}
+      <div class="share-list">
+        {% for item in shares %}
+          <div class="share-row">
+            <span><strong>{{ item.user.username if item.user else '未知用户' }}</strong><small>{{ item.share.created_at|localdt }} 起可使用</small></span>
+            <form method="post" action="{{ url_for('main.revoke_question_share', template_id=template._id, share_id=item.share._id) }}">
+              <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+              <button class="link-button danger-text" type="submit">撤销</button>
+            </form>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="muted small">尚未共享给其他用户。</p>
+    {% endif %}
+  </section>
+  {% else %}
+  <section class="card">
+    <span class="eyebrow">Shared question</span>
+    <h2>直接在问卷中选用</h2>
+    <p class="muted">返回草稿问卷后选择“从题库选题”，就能加入当前版本。若修改内容，系统会为你创建独立副本，不会影响创建者的原题。</p>
+    <a class="button button-small" href="{{ url_for('main.dashboard') }}">返回我的问卷</a>
+  </section>
+  {% endif %}
+</div>
+
+<section class="section-heading">
+  <div>
+    <h2>版本历史</h2>
+    <p class="muted small">版本不可覆盖；恢复旧内容时会根据旧版本创建新的当前版本。</p>
+  </div>
+</section>
+<div class="version-timeline">
+  {% for item in versions %}
+    {% set version = item.version %}
+    <article class="card version-card">
+      <div class="version-marker">v{{ version.version_no }}</div>
+      <div class="version-body">
+        <div class="version-head">
+          <div>
+            <h3>{{ version.title }}</h3>
+            <div class="question-meta">
+              <span>{{ version.created_at|localdt }}</span>
+              {% if version.parent_version_id and item.parent %}<span>父版本 v{{ item.parent.version_no }}</span>{% endif %}
+              {% if version.source_version_id and item.source %}<span>来源 v{{ item.source.version_no }}</span>{% endif %}
+            </div>
+          </div>
+          {% if loop.first %}<span class="version-pill">当前</span>{% endif %}
+        </div>
+        <p class="version-note">{{ version.change_note or '未填写版本说明' }}</p>
+        {% if version.options %}
+          <div class="option-chips compact-chips">
+            {% for option in version.options[:6] %}<span>{{ option.label }}</span>{% endfor %}
+          </div>
+        {% endif %}
+        {% if is_owner and not loop.first %}
+          <form method="post" action="{{ url_for('main.restore_question_version', template_id=template._id, version_id=version._id) }}" class="inline-form version-restore">
+            <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+            <button class="link-button" type="submit">根据此版本创建新的当前版本</button>
+          </form>
+        {% endif %}
+      </div>
+    </article>
+  {% endfor %}
+</div>
+
+<section class="section-heading">
+  <div>
+    <h2>使用位置</h2>
+    <p class="muted small">{% if is_owner %}显示所有问卷中的使用记录。{% else %}这里只显示你本人可访问问卷中的使用记录。{% endif %}</p>
+  </div>
+</section>
+{% if usage_views %}
+  <div class="card usage-table-card">
+    <div class="usage-table-head">
+      <span>问卷</span><span>状态</span><span>题号 / 版本</span><span></span>
+    </div>
+    {% for item in usage_views %}
+      <div class="usage-table-row">
+        <span>{{ item.survey.title if item.survey else '问卷已不存在' }}</span>
+        <span>{% if item.survey %}{{ item.survey.status|status_label }}{% else %}—{% endif %}</span>
+        <span>第 {{ item.usage.order }} 题 · v{{ item.usage.version_no }}</span>
+        <span>{% if item.can_open %}<a href="{{ url_for('main.survey_detail', survey_id=item.survey._id) }}">打开问卷 →</a>{% else %}<span class="muted small">只读记录</span>{% endif %}</span>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="card empty-state compact-empty">
+    <h2>还没有问卷使用这道题</h2>
+    <p>在草稿问卷中选择“从题库选题”即可加入。</p>
+  </div>
+{% endif %}
+{% endblock %}

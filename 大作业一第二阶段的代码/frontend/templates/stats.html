@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}统计 · {{ survey.title }}{% endblock %}
+{% block content %}
+<a class="back-link" href="{{ url_for('main.survey_detail', survey_id=survey._id) }}">← 返回问卷管理</a>
+
+<section class="page-heading">
+  <div>
+    <span class="eyebrow">结果分析</span>
+    <h1>{{ '单题统计' if focus else '问卷统计' }}</h1>
+    <p class="muted">{{ survey.title }}</p>
+  </div>
+  {% if focus %}
+    <a class="button button-ghost" href="{{ url_for('main.survey_stats', survey_id=survey._id) }}">查看整卷统计</a>
+  {% endif %}
+</section>
+
+<section class="metric-strip card">
+  <div><strong>{{ response_count }}</strong><span>已提交答卷</span></div>
+  <div><strong>{{ all_question_count }}</strong><span>题目数量</span></div>
+  <div><strong>{{ '匿名' if survey.allow_anonymous else '账号记录' }}</strong><span>填写方式</span></div>
+  <div><strong>{{ survey.deadline|localdt }}</strong><span>截止时间</span></div>
+</section>
+
+{% if response_count == 0 %}
+  <div class="card empty-state">
+    <div class="empty-icon">∅</div>
+    <h2>还没有有效答卷</h2>
+    <p>填写者提交后，统计结果会自动生成。</p>
+  </div>
+{% endif %}
+
+<div class="stats-list">
+  {% for stat in stats %}
+    {% set question = stat.question %}
+    <article class="card stat-card" id="q-{{ question._id }}">
+      <div class="stat-head">
+        <div>
+          <div class="question-meta">
+            <span>第 {{ question.order }} 题</span>
+            <span>{{ question.type|question_type }}</span>
+            <span>{{ '必答' if question.required else '选答' }}</span>
+          </div>
+          <h2>{{ question.title }}</h2>
+        </div>
+        <div class="stat-count"><strong>{{ stat.answered }}</strong><span>/ {{ stat.total }} 人回答</span></div>
+      </div>
+
+      {% if question.type in ['single', 'multiple'] %}
+        <div class="bar-list">
+          {% for option in stat.options %}
+            <div class="bar-row">
+              <div class="bar-label">
+                <span><b>{{ option.key }}</b>{{ option.label }}</span>
+                <span>{{ option.count }} 人 · {{ option.percent }}%</span>
+              </div>
+              <div class="bar-track"><div class="bar-fill" style="width: {{ option.percent }}%"></div></div>
+            </div>
+          {% endfor %}
+        </div>
+        {% if question.type == 'multiple' %}
+          <p class="muted small">平均每人选择 {{ stat.average_selected }} 个选项。</p>
+        {% endif %}
+      {% elif question.type == 'text' %}
+        <div class="text-responses">
+          {% for value in stat["values"] %}
+            <div class="text-response">{{ value }}</div>
+          {% else %}
+            <p class="muted">暂无文本答案。</p>
+          {% endfor %}
+        </div>
+      {% elif question.type == 'number' %}
+        <div class="number-summary">
+          <div><strong>{{ stat.average if stat.average is not none else '—' }}</strong><span>平均值</span></div>
+          <div><strong>{{ stat.minimum if stat.minimum is not none else '—' }}</strong><span>最小值</span></div>
+          <div><strong>{{ stat.maximum if stat.maximum is not none else '—' }}</strong><span>最大值</span></div>
+        </div>
+        <div class="number-values">
+          {% for value in stat["values"] %}<span>{{ value }}</span>{% endfor %}
+        </div>
+      {% endif %}
+
+      {% if not focus %}
+        <div class="stat-footer">
+          <a href="{{ url_for('main.question_stats', survey_id=survey._id, question_id=question._id) }}">只看这道题 →</a>
+        </div>
+      {% endif %}
+    </article>
+  {% endfor %}
+</div>
+{% endblock %}

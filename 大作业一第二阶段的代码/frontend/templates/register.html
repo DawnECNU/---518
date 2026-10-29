@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}注册 · 轻问卷{% endblock %}
+{% block content %}
+<section class="auth-layout">
+  <div class="auth-aside">
+    <span class="eyebrow">创建账号</span>
+    <h1>从第一份问卷开始。</h1>
+    <p>账号用于保存你的问卷和答卷归属。密码只保存加盐哈希，不保存明文。</p>
+  </div>
+  <div class="card auth-card">
+    <h2>注册</h2>
+    <form method="post" class="stack">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <label class="field">
+        <span>用户名</span>
+        <input name="username" value="{{ username }}" minlength="3" maxlength="32" required autofocus placeholder="3~32 个字符">
+      </label>
+      <label class="field">
+        <span>密码</span>
+        <input type="password" name="password" minlength="6" maxlength="128" required placeholder="至少 6 个字符">
+      </label>
+      <label class="field">
+        <span>确认密码</span>
+        <input type="password" name="confirm_password" minlength="6" maxlength="128" required>
+      </label>
+      <button class="button button-primary button-block" type="submit">创建账号</button>
+    </form>
+    <p class="muted center">已有账号？<a href="{{ url_for('main.login') }}">直接登录</a></p>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,12 @@
+services:
+  mongo:
+    image: mongo:8.0
+    container_name: survey-phase1-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - survey_phase1_data:/data/db
+
+volumes:
+  survey_phase1_data:

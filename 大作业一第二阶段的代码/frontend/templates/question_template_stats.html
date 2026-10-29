@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}跨问卷统计 · {{ template.name }}{% endblock %}
+{% block content %}
+<a class="back-link" href="{{ url_for('main.question_template_detail', template_id=template._id) }}">← 返回题目详情</a>
+<section class="page-heading">
+  <div>
+    <span class="eyebrow">Cross-survey analysis</span>
+    <h1>跨问卷统计</h1>
+    <p class="muted">{{ template.name }} · 汇总所有使用同一版本的问卷中已提交的答案。</p>
+  </div>
+  <form method="get" class="version-filter">
+    <label class="field compact">
+      <span>统计版本</span>
+      <select name="version" onchange="this.form.submit()">
+        {% for version in versions %}
+          <option value="{{ version._id }}" {% if version._id == selected_version._id %}selected{% endif %}>v{{ version.version_no }} · {{ version.title }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  </form>
+</section>
+
+<section class="metric-strip card">
+  <div><strong>{{ stats.usage_count }}</strong><span>本版本使用位置</span></div>
+  <div><strong>{{ survey_views|length }}</strong><span>参与问卷</span></div>
+  <div><strong>{{ stats.answered }}</strong><span>有效回答</span></div>
+  <div><strong>{{ stats.total }}</strong><span>已提交答卷</span></div>
+  <div><strong>v{{ selected_version.version_no }}</strong><span>当前统计版本</span></div>
+</section>
+
+<article class="card stat-card cross-stat-card">
+  <div class="stat-head">
+    <div>
+      <div class="question-meta">
+        <span>{{ selected_version.type|question_type }}</span>
+        <span>{{ '必答' if selected_version.required else '选答' }}</span>
+        <span>跨 {{ survey_views|length }} 份问卷</span>
+      </div>
+      <h2>{{ selected_version.title }}</h2>
+    </div>
+    <div class="stat-count"><strong>{{ stats.answered }}</strong><span>个有效答案</span></div>
+  </div>
+
+  {% if selected_version.type in ['single', 'multiple'] %}
+    {% if stats.options %}
+      <div class="bar-list">
+        {% for option in stats.options %}
+          <div class="bar-row">
+            <div class="bar-label">
+              <span><b>{{ option.key }}</b>{{ option.label }}</span>
+              <span>{{ option.count }} 次 · {{ option.percent }}%</span>
+            </div>
+            <div class="bar-track"><div class="bar-fill" style="width: {{ option.percent }}%"></div></div>
+          </div>
+        {% endfor %}
+      </div>
+      {% if selected_version.type == 'multiple' %}
+        <p class="muted small">平均每次填写选择 {{ stats.average_selected }} 个选项。</p>
+      {% endif %}
+    {% else %}
+      <p class="muted">这个版本还没有有效答案。</p>
+    {% endif %}
+  {% elif selected_version.type == 'text' %}
+    <div class="text-responses">
+      {% for value in stats["values"] %}
+        <div class="text-response">{{ value }}</div>
+      {% else %}
+        <p class="muted">这个版本还没有有效答案。</p>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="number-summary">
+      <div><strong>{{ stats.average if stats.average is not none else '—' }}</strong><span>平均值</span></div>
+      <div><strong>{{ stats.minimum if stats.minimum is not none else '—' }}</strong><span>最小值</span></div>
+      <div><strong>{{ stats.maximum if stats.maximum is not none else '—' }}</strong><span>最大值</span></div>
+    </div>
+    <div class="number-values">
+      {% for value in stats["values"] %}<span>{{ value }}</span>{% endfor %}
+    </div>
+  {% endif %}
+</article>
+
+<section class="section-heading">
+  <div>
+    <h2>问卷分布</h2>
+    <p class="muted small">只包含你能访问的问卷使用记录。</p>
+  </div>
+</section>
+<div class="survey-stat-list">
+  {% for item in survey_views %}
+    <div class="card survey-stat-row">
+      <div>
+        <strong>{{ item.survey.title }}</strong>
+        <span>{{ item.survey.status|status_label }} · 本版本使用 {{ item.usage_count }} 处</span>
+      </div>
+      <div><strong>{{ item.response_count }}</strong><span>已提交答卷</span></div>
+      {% if item.can_open %}<a href="{{ url_for('main.survey_stats', survey_id=item.survey._id) }}">查看问卷 →</a>{% endif %}
+    </div>
+  {% else %}
+    <div class="card empty-state compact-empty">
+      <h2>这个版本尚未进入问卷</h2>
+      <p>从草稿问卷选择该版本后再查看统计。</p>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

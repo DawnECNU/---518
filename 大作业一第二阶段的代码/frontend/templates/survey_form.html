@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}新建问卷 · 轻问卷{% endblock %}
+{% block content %}
+<section class="narrow">
+  <a class="back-link" href="{{ url_for('main.dashboard') }}">← 返回我的问卷</a>
+  <div class="page-heading compact">
+    <div>
+      <span class="eyebrow">新建</span>
+      <h1>创建问卷</h1>
+      <p class="muted">先填写基本信息，创建后再逐题添加题目和跳转规则。</p>
+    </div>
+  </div>
+  <form method="post" action="{{ url_for('main.create_survey') }}" class="card stack">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <label class="field">
+      <span>问卷标题 <em>必填</em></span>
+      <input name="title" maxlength="200" required value="{{ data.get('title', '') }}" placeholder="例如：校园生活小调查">
+    </label>
+    <label class="field">
+      <span>问卷说明</span>
+      <textarea name="description" rows="4" maxlength="5000" placeholder="告诉填写者这份问卷的用途和注意事项。">{{ data.get('description', '') }}</textarea>
+    </label>
+    <label class="field">
+      <span>截止时间 <small>可选</small></span>
+      <input type="datetime-local" name="deadline" value="{{ data.get('deadline', '') }}">
+    </label>
+    <div class="option-box">
+      <label class="check-row">
+        <input type="checkbox" name="allow_anonymous" {% if data.get('allow_anonymous') %}checked{% endif %}>
+        <span><strong>允许匿名填写</strong><small>统计结果不展示填写者身份。</small></span>
+      </label>
+      <label class="check-row">
+        <input type="checkbox" name="allow_multiple" {% if data.get('allow_multiple', true) %}checked{% endif %}>
+        <span><strong>允许同一账号多次填写</strong><small>关闭后，每个登录账号只能提交一份。</small></span>
+      </label>
+    </div>
+    <div class="form-actions">
+      <button class="button button-primary" type="submit">创建问卷</button>
+      <a class="button button-ghost" href="{{ url_for('main.dashboard') }}">取消</a>
+    </div>
+  </form>
+</section>
+{% endblock %}
